@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UtilisateurRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UtilisateurRepository::class)]
@@ -19,6 +21,14 @@ class Utilisateur
     #[ORM\Column(length: 255)]
     private ?string $prenom = null;
 
+    #[ORM\OneToMany(targetEntity: Emprunt::class, mappedBy: 'utilisateur')]
+    private Collection $emprunts;
+
+    public function __construct()
+    {
+        $this->emprunts = new ArrayCollection();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
@@ -32,7 +42,6 @@ class Utilisateur
     public function setNom(string $nom): static
     {
         $this->nom = $nom;
-
         return $this;
     }
 
@@ -44,7 +53,40 @@ class Utilisateur
     public function setPrenom(string $prenom): static
     {
         $this->prenom = $prenom;
-
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Emprunt>
+     */
+    public function getEmprunts(): Collection
+    {
+        return $this->emprunts;
+    }
+
+    public function addEmprunt(Emprunt $emprunt): static
+    {
+        if (!$this->emprunts->contains($emprunt)) {
+            $this->emprunts->add($emprunt);
+            $emprunt->setUtilisateur($this);
+        }
+        return $this;
+    }
+
+    public function removeEmprunt(Emprunt $emprunt): static
+    {
+        if ($this->emprunts->removeElement($emprunt)) {
+            if ($emprunt->getUtilisateur() === $this) {
+                $emprunt->setUtilisateur(null);
+            }
+        }
+        return $this;
+    }
+    
+    public function getNombreEmpruntsEnCours(): int
+    {
+        return $this->emprunts->filter(function(Emprunt $emprunt) {
+            return $emprunt->getDateRetour() === null;
+        })->count();
     }
 }
