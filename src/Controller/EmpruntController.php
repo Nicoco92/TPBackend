@@ -146,4 +146,58 @@ class EmpruntController extends AbstractController
 
         return $this->json($data, 200);
     }
+
+    #[Route('/auteur/{id}', name: 'by_auteur_and_dates', methods: ['GET'])]
+    public function getLivresEmpruntesParAuteurEntreDates(
+    int $id,
+    Request $request,
+    EmpruntRepository $empruntRepo
+    ): JsonResponse {
+
+    $startDate = $request->query->get('start');
+    $endDate = $request->query->get('end');
+
+    if (!$startDate || !$endDate) {
+        return $this->json(['error' => 'Les paramètres start et end sont requis'], 400);
+    }
+
+    try {
+        $start = new \DateTime($startDate);
+        $end = new \DateTime($endDate);
+    } catch (\Exception $e) {
+        return $this->json(['error' => 'Format de date invalide (attendu : YYYY-MM-DD)'], 400);
+    }
+
+    $qb = $empruntRepo->createQueryBuilder('e')
+        ->join('e.livre', 'l')
+        ->join('l.auteur', 'a')
+        ->where('a.id = :auteurId')
+        ->andWhere('e.dateEmprunt BETWEEN :start AND :end')
+        ->setParameter('auteurId', $id)
+        ->setParameter('start', $start)
+        ->setParameter('end', $end)
+        ->orderBy('e.dateEmprunt', 'ASC');
+
+    $emprunts = $qb->getQuery()->getResult();
+
+    if (empty($emprunts)) {
+        return $this->json(['message' => 'Aucun livre emprunté pour cet auteur sur cette période.'], 200);
+    }
+
+    $data = [];
+    foreach ($emprunts as $emprunt) {
+        $data[] = [
+            'livre_id' => $emprunt->getLivre()->getId(),
+            'titre' => $emprunt->getLivre()->getTitre(),
+            'dateEmprunt' => $emprunt->getDateEmprunt()->format('Y-m-d'),
+            'dateRetour' => $emprunt->getDateRetour()?->format('Y-m-d'),
+        ];
+    }
+
+    return $this->json([
+        'auteur_id' => $id,
+        'nombre_livres' => count($data),
+        'livres' => $data
+    ], 200);
+    }
 }
