@@ -68,6 +68,7 @@ class EmpruntController extends AbstractController
         'utilisateur_id' => $utilisateur->getId()
         ], 201);
     }
+
     #[Route('/{id}/rendre', name: 'rendre', methods: ['PATCH'])]
     public function rendre(
         Emprunt $emprunt,
@@ -80,7 +81,6 @@ class EmpruntController extends AbstractController
             ], 400);
         }
 
-        
         $emprunt->setDateRetour(new \DateTime());
         $livre = $emprunt->getLivre();
         $livre->setDisponible(true);
@@ -110,5 +110,40 @@ class EmpruntController extends AbstractController
     }
 
     return $this->json($data);
+    }
+
+    #[Route('/utilisateur/{id}/en-cours', name: 'en_cours', methods: ['GET'])]
+    public function empruntsEnCours(
+        int $id,
+        UtilisateurRepository $userRepo,
+        EmpruntRepository $empruntRepo
+    ): JsonResponse {
+
+        $utilisateur = $userRepo->find($id);
+        if (!$utilisateur) {
+            return $this->json(['error' => 'Utilisateur introuvable'], 404);
+        }
+
+        $emprunts = $empruntRepo->createQueryBuilder('e')
+            ->where('e.utilisateur = :user')
+            ->andWhere('e.dateRetour IS NULL')
+            ->setParameter('user', $utilisateur)
+            ->orderBy('e.dateEmprunt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $data = [
+            'utilisateur' => $utilisateur->getNom() . ' ' . $utilisateur->getPrenom(),
+            'nombre_emprunts_en_cours' => count($emprunts),
+            'emprunts' => array_map(function (Emprunt $e) {
+                return [
+                    'id' => $e->getId(),
+                    'livre' => $e->getLivre()->getTitre(),
+                    'dateEmprunt' => $e->getDateEmprunt()->format('Y-m-d H:i:s'),
+                ];
+            }, $emprunts)
+        ];
+
+        return $this->json($data, 200);
     }
 }

@@ -21,9 +21,6 @@ class UtilisateurController extends AbstractController
         private LoggerInterface $logger
     ) {}
 
-    /**
-     * Liste tous les utilisateurs
-     */
     #[Route('', name: 'list', methods: ['GET'])]
     public function list(): JsonResponse
     {
@@ -46,9 +43,6 @@ class UtilisateurController extends AbstractController
         }
     }
 
-    /**
-     * Récupère un utilisateur par son ID
-     */
     #[Route('/{id}', name: 'show', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show(int $id): JsonResponse
     {
@@ -75,9 +69,6 @@ class UtilisateurController extends AbstractController
         }
     }
 
-    /**
-     * Crée un nouvel utilisateur
-     */
     #[Route('', name: 'create', methods: ['POST'])]
     public function create(Request $request): JsonResponse
     {
@@ -91,7 +82,6 @@ class UtilisateurController extends AbstractController
                 );
             }
 
-            // Validation des champs requis
             $requiredFields = ['nom', 'prenom'];
             foreach ($requiredFields as $field) {
                 if (!isset($data[$field]) || empty($data[$field])) {
@@ -126,9 +116,6 @@ class UtilisateurController extends AbstractController
         }
     }
 
-    /**
-     * Sérialise un utilisateur en tableau
-     */
     private function serializeUtilisateur(Utilisateur $utilisateur): array
     {
         return [
@@ -137,4 +124,5 @@ class UtilisateurController extends AbstractController
             'prenom' => $utilisateur->getPrenom()
         ];
     }
+    
 }
